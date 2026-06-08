@@ -204,9 +204,7 @@ Panitia {{event_title}}',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_event_templates_single_active
-ON event_templates (is_active)
-WHERE is_active = TRUE;
+DROP INDEX IF EXISTS idx_event_templates_single_active;
 
 INSERT INTO event_templates (
     template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
