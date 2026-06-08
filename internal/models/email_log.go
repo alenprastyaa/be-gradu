@@ -9,6 +9,7 @@ import (
 
 type EmailLog struct {
 	ID         uuid.UUID       `json:"id"`
+	SchoolID   *uuid.UUID      `json:"school_id,omitempty"`
 	StudentID  *uuid.UUID      `json:"student_id"`
 	Email      string          `json:"email"`
 	MessageID  string          `json:"message_id"`
@@ -22,6 +23,7 @@ type EmailLog struct {
 }
 
 type EmailLogInput struct {
+	SchoolID   *uuid.UUID
 	StudentID  *uuid.UUID
 	Email      string
 	MessageID  string

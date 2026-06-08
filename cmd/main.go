@@ -41,6 +41,9 @@ func main() {
 	if err := authService.EnsureDefaultAdmin(context.Background()); err != nil {
 		log.Fatalf("default admin setup failed: %v", err)
 	}
+	if err := authService.EnsureDefaultSuperAdmin(context.Background()); err != nil {
+		log.Fatalf("default super admin setup failed: %v", err)
+	}
 
 	log.Printf("backend running on :%s", cfg.AppPort)
 	log.Fatal(app.Listen(":" + cfg.AppPort))

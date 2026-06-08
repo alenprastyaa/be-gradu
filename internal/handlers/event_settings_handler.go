@@ -30,7 +30,7 @@ func NewEventSettingsHandler(service *services.EventSettingsService, storage *se
 }
 
 func (h *EventSettingsHandler) Get(c *fiber.Ctx) error {
-	data, err := h.service.Get(c.Context())
+	data, err := h.service.Get(c.UserContext())
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengambil template undangan", err.Error())
 	}
@@ -38,7 +38,7 @@ func (h *EventSettingsHandler) Get(c *fiber.Ctx) error {
 }
 
 func (h *EventSettingsHandler) List(c *fiber.Ctx) error {
-	data, err := h.service.List(c.Context())
+	data, err := h.service.List(c.UserContext())
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengambil template undangan", err.Error())
 	}
@@ -50,7 +50,7 @@ func (h *EventSettingsHandler) Create(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
 	}
-	data, err := h.service.Create(c.Context(), input)
+	data, err := h.service.Create(c.UserContext(), input)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal membuat template undangan", err.Error())
 	}
@@ -69,7 +69,7 @@ func (h *EventSettingsHandler) Update(c *fiber.Ctx) error {
 		}
 		input.ID = parsed
 	}
-	data, err := h.service.Update(c.Context(), input)
+	data, err := h.service.Update(c.UserContext(), input)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal menyimpan template undangan", err.Error())
 	}
@@ -85,7 +85,7 @@ func (h *EventSettingsHandler) UpdateSeatMap(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
 	}
-	data, err := h.service.UpdateSeatMap(c.Context(), input.SeatMapColumns, input.SeatMapColorMode, input.SeatMapLayout)
+	data, err := h.service.UpdateSeatMap(c.UserContext(), input.SeatMapColumns, input.SeatMapColorMode, input.SeatMapLayout)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal menyimpan denah bangku", err.Error())
 	}
@@ -104,7 +104,7 @@ func (h *EventSettingsHandler) UploadLogo(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	data, err := h.service.UpdateSchoolLogo(c.Context(), uploaded.object.URL, uploaded.object.Key)
+	data, err := h.service.UpdateSchoolLogo(c.UserContext(), uploaded.object.URL, uploaded.object.Key)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Logo berhasil diupload, tetapi gagal disimpan ke template", err.Error())
 	}
@@ -116,7 +116,7 @@ func (h *EventSettingsHandler) Activate(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	data, err := h.service.Activate(c.Context(), id)
+	data, err := h.service.Activate(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengaktifkan template undangan", err.Error())
 	}
@@ -128,7 +128,7 @@ func (h *EventSettingsHandler) Delete(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal menghapus template undangan", err.Error())
 	}
 	return utils.Success(c, "Template undangan berhasil dihapus", nil)
@@ -189,7 +189,7 @@ func (h *EventSettingsHandler) uploadObject(c *fiber.Ctx, formField string, labe
 	}
 
 	key := fmt.Sprintf("%s/%s-%s%s", prefix, time.Now().UTC().Format("20060102150405"), uuid.NewString(), ext)
-	uploaded, err := h.storage.PutObject(c.Context(), key, contentType, body)
+	uploaded, err := h.storage.PutObject(c.UserContext(), key, contentType, body)
 	if err != nil {
 		return nil, utils.Error(c, fiber.StatusInternalServerError, "Gagal upload file ke R2", err.Error())
 	}

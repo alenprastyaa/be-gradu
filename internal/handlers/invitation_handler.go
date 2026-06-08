@@ -16,7 +16,7 @@ func NewInvitationHandler(service *services.InvitationService) *InvitationHandle
 }
 
 func (h *InvitationHandler) Get(c *fiber.Ctx) error {
-	data, err := h.service.GetByCode(c.Context(), c.Params("code"))
+	data, err := h.service.GetByCode(c.UserContext(), c.Params("code"))
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengambil undangan", err.Error())
 	}

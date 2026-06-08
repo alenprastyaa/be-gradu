@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"graduation-invitation/internal/authcontext"
 	"graduation-invitation/internal/models"
 
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ func NewEventSettingsRepository(db *pgxpool.Pool) *EventSettingsRepository {
 }
 
 func (r *EventSettingsRepository) List(ctx context.Context) ([]models.EventSettings, error) {
-	rows, err := r.db.Query(ctx, eventTemplateSelect()+` ORDER BY is_active DESC, updated_at DESC, template_name`)
+	rows, err := r.db.Query(ctx, eventTemplateSelect()+` WHERE 1=1`+tenantSQL(ctx, 1)+` ORDER BY is_active DESC, updated_at DESC, template_name`, tenantArgs(ctx)...)
 	if err != nil {
 		return nil, err
 	}
@@ -38,33 +39,37 @@ func (r *EventSettingsRepository) List(ctx context.Context) ([]models.EventSetti
 }
 
 func (r *EventSettingsRepository) GetActive(ctx context.Context) (*models.EventSettings, error) {
-	row := r.db.QueryRow(ctx, eventTemplateSelect()+` WHERE is_active = TRUE ORDER BY updated_at DESC LIMIT 1`)
+	row := r.db.QueryRow(ctx, eventTemplateSelect()+` WHERE is_active = TRUE`+tenantSQL(ctx, 1)+` ORDER BY updated_at DESC LIMIT 1`, tenantArgs(ctx)...)
 	return scanEventSettings(row)
 }
 
 func (r *EventSettingsRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.EventSettings, error) {
-	row := r.db.QueryRow(ctx, eventTemplateSelect()+` WHERE id=$1`, id)
+	row := r.db.QueryRow(ctx, eventTemplateSelect()+` WHERE id=$1`+tenantSQL(ctx, 2), tenantArgs(ctx, id)...)
 	return scanEventSettings(row)
 }
 
 func (r *EventSettingsRepository) Create(ctx context.Context, settings models.EventSettings) (*models.EventSettings, error) {
+	schoolID, ok := authcontext.SchoolID(ctx)
+	if !ok {
+		return nil, errors.New("school_id tidak tersedia")
+	}
 	row := r.db.QueryRow(ctx, `
 		INSERT INTO event_templates (
-			template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+			school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 			event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 			schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 			theme_primary, theme_secondary, theme_accent,
 			theme_background, theme_surface, theme_text,
 			event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)
-		RETURNING id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43)
+		RETURNING id, school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 		          event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 		          schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 		          theme_primary, theme_secondary, theme_accent,
 		          theme_background, theme_surface, theme_text,
 		          event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout, updated_at
-	`, settings.TemplateName, settings.IsActive, settings.EventTitle, settings.SchoolName, settings.GraduationYear, settings.RecipientGreeting, settings.OpeningText,
+	`, *schoolID, settings.TemplateName, settings.IsActive, settings.EventTitle, settings.SchoolName, settings.GraduationYear, settings.RecipientGreeting, settings.OpeningText,
 		settings.EventDate, settings.EventTime, settings.VenueName, settings.VenueAddress, settings.MapsURL, settings.DressCode, settings.AdditionalNote,
 		settings.ScheduleTitle, settings.ScheduleHeaders, settings.ScheduleRows, settings.SchoolLogoURL, settings.SchoolLogoKey, settings.WhatsappTemplate, settings.EmailSubject, settings.EmailTemplate, settings.AudioURL, settings.AudioKey, settings.AudioTitle, settings.AudioAutoplay,
 		settings.ThemePrimary, settings.ThemeSecondary, settings.ThemeAccent,
@@ -118,19 +123,19 @@ func (r *EventSettingsRepository) Update(ctx context.Context, settings models.Ev
 			seat_map_color_mode=$41,
 			seat_map_layout=$42,
 			updated_at=CURRENT_TIMESTAMP
-		WHERE id=$1
-		RETURNING id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+		WHERE id=$1 `+tenantSQL(ctx, 43)+`
+		RETURNING id, school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 		          event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 		          schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 		          theme_primary, theme_secondary, theme_accent,
 		          theme_background, theme_surface, theme_text,
 		          event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout, updated_at
-	`, settings.ID, settings.TemplateName, settings.EventTitle, settings.SchoolName, settings.GraduationYear, settings.RecipientGreeting, settings.OpeningText,
+	`, tenantArgs(ctx, settings.ID, settings.TemplateName, settings.EventTitle, settings.SchoolName, settings.GraduationYear, settings.RecipientGreeting, settings.OpeningText,
 		settings.EventDate, settings.EventTime, settings.VenueName, settings.VenueAddress, settings.MapsURL, settings.DressCode, settings.AdditionalNote,
 		settings.ScheduleTitle, settings.ScheduleHeaders, settings.ScheduleRows, settings.SchoolLogoURL, settings.SchoolLogoKey, settings.WhatsappTemplate, settings.EmailSubject, settings.EmailTemplate, settings.AudioURL, settings.AudioKey, settings.AudioTitle, settings.AudioAutoplay,
 		settings.ThemePrimary, settings.ThemeSecondary, settings.ThemeAccent,
 		settings.ThemeBackground, settings.ThemeSurface, settings.ThemeText,
-		settings.EventDatetime, settings.LayoutVariant, settings.ShowCountdown, settings.ShowMap, settings.ShowQR, settings.ShowNote, settings.LayoutSections, settings.SeatMapColumns, settings.SeatMapColorMode, settings.SeatMapLayout)
+		settings.EventDatetime, settings.LayoutVariant, settings.ShowCountdown, settings.ShowMap, settings.ShowQR, settings.ShowNote, settings.LayoutSections, settings.SeatMapColumns, settings.SeatMapColorMode, settings.SeatMapLayout)...)
 	return scanEventSettings(row)
 }
 
@@ -141,19 +146,19 @@ func (r *EventSettingsRepository) Activate(ctx context.Context, id uuid.UUID) (*
 	}
 	defer tx.Rollback(ctx)
 
-	if _, err := tx.Exec(ctx, `UPDATE event_templates SET is_active=FALSE`); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE event_templates SET is_active=FALSE WHERE 1=1`+tenantSQL(ctx, 1), tenantArgs(ctx)...); err != nil {
 		return nil, err
 	}
 	row := tx.QueryRow(ctx, `
 		UPDATE event_templates SET is_active=TRUE, updated_at=CURRENT_TIMESTAMP
-		WHERE id=$1
-		RETURNING id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+		WHERE id=$1 `+tenantSQL(ctx, 2)+`
+		RETURNING id, school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 		          event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 		          schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 		          theme_primary, theme_secondary, theme_accent,
 		          theme_background, theme_surface, theme_text,
 		          event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout, updated_at
-	`, id)
+	`, tenantArgs(ctx, id)...)
 	settings, err := scanEventSettings(row)
 	if err != nil {
 		return nil, err
@@ -165,7 +170,7 @@ func (r *EventSettingsRepository) Activate(ctx context.Context, id uuid.UUID) (*
 }
 
 func (r *EventSettingsRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM event_templates WHERE id=$1 AND is_active=FALSE`, id)
+	_, err := r.db.Exec(ctx, `DELETE FROM event_templates WHERE id=$1 AND is_active=FALSE`+tenantSQL(ctx, 2), tenantArgs(ctx, id)...)
 	return err
 }
 
@@ -176,16 +181,17 @@ func (r *EventSettingsRepository) UpdateActiveSeatMap(ctx context.Context, colum
 		WHERE id = (
 			SELECT id FROM event_templates
 			WHERE is_active = TRUE
+			`+tenantSQL(ctx, 4)+`
 			ORDER BY updated_at DESC
 			LIMIT 1
 		)
-		RETURNING id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+		RETURNING id, school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 		          event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 			schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 			theme_primary, theme_secondary, theme_accent,
 			theme_background, theme_surface, theme_text,
 			event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout, updated_at
-	`, columns, colorMode, layout)
+	`, tenantArgs(ctx, columns, colorMode, layout)...)
 	return scanEventSettings(row)
 }
 
@@ -196,21 +202,22 @@ func (r *EventSettingsRepository) UpdateActiveSchoolLogo(ctx context.Context, ur
 		WHERE id = (
 			SELECT id FROM event_templates
 			WHERE is_active = TRUE
+			`+tenantSQL(ctx, 3)+`
 			ORDER BY updated_at DESC
 			LIMIT 1
 		)
-		RETURNING id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+		RETURNING id, school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 		          event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 		          schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 		          theme_primary, theme_secondary, theme_accent,
 		          theme_background, theme_surface, theme_text,
 		          event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout, updated_at
-	`, url, key)
+	`, tenantArgs(ctx, url, key)...)
 	return scanEventSettings(row)
 }
 
 func eventTemplateSelect() string {
-	return `SELECT id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+	return `SELECT id, school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 		event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 		schedule_title, schedule_headers, schedule_rows, school_logo_url, school_logo_key, whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 		theme_primary, theme_secondary, theme_accent,
@@ -222,6 +229,7 @@ func scanEventSettings(row pgx.Row) (*models.EventSettings, error) {
 	var settings models.EventSettings
 	if err := row.Scan(
 		&settings.ID,
+		&settings.SchoolID,
 		&settings.TemplateName,
 		&settings.IsActive,
 		&settings.EventTitle,

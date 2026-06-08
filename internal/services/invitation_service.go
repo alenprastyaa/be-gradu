@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 
+	"graduation-invitation/internal/authcontext"
 	"graduation-invitation/internal/models"
 )
 
@@ -19,6 +20,9 @@ func (s *InvitationService) GetByCode(ctx context.Context, code string) (map[str
 	student, err := s.students.GetByInvitationCode(ctx, code)
 	if err != nil || student == nil {
 		return nil, err
+	}
+	if student.SchoolID != nil {
+		ctx = authcontext.WithSchoolID(ctx, *student.SchoolID)
 	}
 	event, err := s.events.Get(ctx)
 	if err != nil {

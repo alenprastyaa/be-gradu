@@ -29,7 +29,7 @@ func (h *EmailHandler) One(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	data, err := h.service.SendForStudent(c.Context(), id)
+	data, err := h.service.SendForStudent(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Gagal mengirim email", err.Error())
 	}
@@ -41,7 +41,7 @@ func (h *EmailHandler) All(c *fiber.Ctx) error {
 	var err error
 	body := bytes.TrimSpace(c.Body())
 	if len(body) == 0 {
-		data, err = h.service.SendAll(c.Context())
+		data, err = h.service.SendAll(c.UserContext())
 	} else {
 		var req bulkStudentIDsRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -50,7 +50,7 @@ func (h *EmailHandler) All(c *fiber.Ctx) error {
 		if len(req.StudentIDs) == 0 {
 			return utils.Error(c, fiber.StatusBadRequest, "Pilih minimal satu siswa", nil)
 		}
-		data, err = h.service.SendForStudents(c.Context(), req.StudentIDs)
+		data, err = h.service.SendForStudents(c.UserContext(), req.StudentIDs)
 	}
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengirim email", err.Error())
@@ -63,7 +63,7 @@ func (h *EmailHandler) ResetSent(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	data, err := h.service.ResetSent(c.Context(), id)
+	data, err := h.service.ResetSent(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal reset status email", err.Error())
 	}
@@ -87,7 +87,7 @@ func (h *EmailHandler) BrevoWebhook(c *fiber.Ctx) error {
 	if err := json.Unmarshal(raw, &batch); err == nil {
 		results := make([]map[string]interface{}, 0, len(batch))
 		for _, item := range batch {
-			result, err := h.service.HandleBrevoEvent(c.Context(), item)
+			result, err := h.service.HandleBrevoEvent(c.UserContext(), item)
 			if err != nil {
 				return utils.Error(c, fiber.StatusBadRequest, "Gagal memproses webhook Brevo", err.Error())
 			}
@@ -95,7 +95,7 @@ func (h *EmailHandler) BrevoWebhook(c *fiber.Ctx) error {
 		}
 		return utils.Success(c, "Webhook Brevo diproses", results)
 	}
-	result, err := h.service.HandleBrevoEvent(c.Context(), json.RawMessage(raw))
+	result, err := h.service.HandleBrevoEvent(c.UserContext(), json.RawMessage(raw))
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Gagal memproses webhook Brevo", err.Error())
 	}
@@ -107,7 +107,7 @@ func (h *EmailHandler) SyncBrevoHistory(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Parameter days tidak valid", nil)
 	}
-	data, err := h.service.SyncBrevoHistory(c.Context(), days)
+	data, err := h.service.SyncBrevoHistory(c.UserContext(), days)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal sinkronisasi history Brevo", err.Error())
 	}

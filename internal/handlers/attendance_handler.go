@@ -27,7 +27,7 @@ func (h *AttendanceHandler) Scan(c *fiber.Ctx) error {
 	if payload == "" {
 		payload = body.Payload
 	}
-	result, err := h.service.Scan(c.Context(), payload)
+	result, err := h.service.Scan(c.UserContext(), payload)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
@@ -39,7 +39,7 @@ func (h *AttendanceHandler) Scan(c *fiber.Ctx) error {
 }
 
 func (h *AttendanceHandler) Summary(c *fiber.Ctx) error {
-	data, err := h.service.Summary(c.Context())
+	data, err := h.service.Summary(c.UserContext())
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengambil rekap", err.Error())
 	}

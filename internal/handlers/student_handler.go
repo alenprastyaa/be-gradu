@@ -21,7 +21,7 @@ func NewStudentHandler(students *services.StudentService, seats *services.SeatSe
 }
 
 func (h *StudentHandler) List(c *fiber.Ctx) error {
-	data, err := h.students.List(c.Context(), models.StudentFilter{
+	data, err := h.students.List(c.UserContext(), models.StudentFilter{
 		ClassName:        c.Query("class_name"),
 		Major:            c.Query("major"),
 		AttendanceStatus: c.Query("attendance_status"),
@@ -36,7 +36,7 @@ func (h *StudentHandler) List(c *fiber.Ctx) error {
 }
 
 func (h *StudentHandler) SeatMap(c *fiber.Ctx) error {
-	data, err := h.students.SeatMap(c.Context(), models.StudentFilter{
+	data, err := h.students.SeatMap(c.UserContext(), models.StudentFilter{
 		ClassName:        c.Query("class_name"),
 		Major:            c.Query("major"),
 		AttendanceStatus: c.Query("attendance_status"),
@@ -53,7 +53,7 @@ func (h *StudentHandler) Create(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
 	}
-	student, err := h.students.Create(c.Context(), input)
+	student, err := h.students.Create(c.UserContext(), input)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
@@ -65,7 +65,7 @@ func (h *StudentHandler) Get(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	student, err := h.students.Get(c.Context(), id)
+	student, err := h.students.Get(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengambil siswa", err.Error())
 	}
@@ -84,7 +84,7 @@ func (h *StudentHandler) Update(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
 	}
-	student, err := h.students.Update(c.Context(), id, input)
+	student, err := h.students.Update(c.UserContext(), id, input)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
@@ -105,7 +105,7 @@ func (h *StudentHandler) UpdateAttendanceStatus(c *fiber.Ctx) error {
 	if err := c.BodyParser(&body); err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
 	}
-	student, err := h.students.UpdateAttendanceStatus(c.Context(), id, body.AttendanceStatus)
+	student, err := h.students.UpdateAttendanceStatus(c.UserContext(), id, body.AttendanceStatus)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
@@ -120,14 +120,14 @@ func (h *StudentHandler) Delete(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	if err := h.students.Delete(c.Context(), id); err != nil {
+	if err := h.students.Delete(c.UserContext(), id); err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal menghapus siswa", err.Error())
 	}
 	return utils.Success(c, "Siswa berhasil dihapus", nil)
 }
 
 func (h *StudentHandler) ResetAll(c *fiber.Ctx) error {
-	deleted, err := h.students.ResetAll(c.Context())
+	deleted, err := h.students.ResetAll(c.UserContext())
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal reset data siswa", err.Error())
 	}
@@ -150,7 +150,7 @@ func (h *StudentHandler) Import(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
-	result, err := h.students.Import(c.Context(), rows)
+	result, err := h.students.Import(c.UserContext(), rows)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), result)
 	}
@@ -158,7 +158,7 @@ func (h *StudentHandler) Import(c *fiber.Ctx) error {
 }
 
 func (h *StudentHandler) Export(c *fiber.Ctx) error {
-	data, err := h.students.ExportAttendanceXLSX(c.Context())
+	data, err := h.students.ExportAttendanceXLSX(c.UserContext())
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal export data", err.Error())
 	}
@@ -180,7 +180,7 @@ func (h *StudentHandler) ImportTemplate(c *fiber.Ctx) error {
 }
 
 func (h *StudentHandler) RegenerateSeats(c *fiber.Ctx) error {
-	if err := h.seats.RegenerateAllSeatNumbers(c.Context()); err != nil {
+	if err := h.seats.RegenerateAllSeatNumbers(c.UserContext()); err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal regenerate nomor bangku", err.Error())
 	}
 	return utils.Success(c, "Nomor bangku berhasil disusun ulang", nil)

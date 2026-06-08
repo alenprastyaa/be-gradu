@@ -152,6 +152,7 @@ func (s *EmailService) send(ctx context.Context, student *models.Student) (map[s
 		student = updated
 	}
 	s.recordLog(ctx, models.EmailLogInput{
+		SchoolID:   student.SchoolID,
 		StudentID:  &student.ID,
 		Email:      recipientEmail,
 		MessageID:  messageID,
@@ -258,6 +259,7 @@ func (s *EmailService) HandleBrevoEvent(ctx context.Context, raw json.RawMessage
 	}
 	if student != nil {
 		studentID = &student.ID
+		input.SchoolID = student.SchoolID
 		if isEmailSentEvidence(input.Event) && student.EmailSentAt == nil {
 			if updated, err := s.repo.MarkEmailSent(ctx, student.ID, input.MessageID); err == nil {
 				student = updated

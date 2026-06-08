@@ -22,7 +22,7 @@ func (h *WhatsappHandler) One(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	data, err := h.service.LinkForStudent(c.Context(), id)
+	data, err := h.service.LinkForStudent(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Gagal membuat link WhatsApp", err.Error())
 	}
@@ -34,7 +34,7 @@ func (h *WhatsappHandler) MarkSent(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	data, err := h.service.MarkSent(c.Context(), id)
+	data, err := h.service.MarkSent(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Gagal menandai WhatsApp terkirim", err.Error())
 	}
@@ -46,7 +46,7 @@ func (h *WhatsappHandler) ResetSent(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
 	}
-	data, err := h.service.ResetSent(c.Context(), id)
+	data, err := h.service.ResetSent(c.UserContext(), id)
 	if err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Gagal mereset status WhatsApp", err.Error())
 	}
@@ -58,7 +58,7 @@ func (h *WhatsappHandler) All(c *fiber.Ctx) error {
 	var err error
 	body := bytes.TrimSpace(c.Body())
 	if len(body) == 0 {
-		data, err = h.service.Links(c.Context())
+		data, err = h.service.Links(c.UserContext())
 	} else {
 		var req bulkStudentIDsRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -67,7 +67,7 @@ func (h *WhatsappHandler) All(c *fiber.Ctx) error {
 		if len(req.StudentIDs) == 0 {
 			return utils.Error(c, fiber.StatusBadRequest, "Pilih minimal satu siswa", nil)
 		}
-		data, err = h.service.LinksForStudents(c.Context(), req.StudentIDs)
+		data, err = h.service.LinksForStudents(c.UserContext(), req.StudentIDs)
 	}
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal membuat link WhatsApp", err.Error())

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"graduation-invitation/internal/authcontext"
 	"graduation-invitation/internal/models"
 	"graduation-invitation/internal/repositories"
 	"graduation-invitation/internal/utils"
@@ -150,51 +151,44 @@ func (s *StudentService) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *StudentService) ResetAll(ctx context.Context) (int64, error) {
+	schoolID, ok := authcontext.SchoolID(ctx)
+	if !ok {
+		return 0, errors.New("school_id tidak tersedia")
+	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback(ctx)
 
-	var deletedStudents, deletedLanes, deletedTemplates, deletedSettings int64
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM students`).Scan(&deletedStudents); err != nil {
+	var deletedStudents, deletedLanes, deletedTemplates int64
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM students WHERE school_id=$1`, *schoolID).Scan(&deletedStudents); err != nil {
 		return 0, err
 	}
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM seating_lanes`).Scan(&deletedLanes); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM seating_lanes WHERE school_id=$1`, *schoolID).Scan(&deletedLanes); err != nil {
 		return 0, err
 	}
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM event_templates`).Scan(&deletedTemplates); err != nil {
-		return 0, err
-	}
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM event_settings`).Scan(&deletedSettings); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM event_templates WHERE school_id=$1`, *schoolID).Scan(&deletedTemplates); err != nil {
 		return 0, err
 	}
 
-	if _, err := tx.Exec(ctx, `TRUNCATE TABLE students, seating_lanes, event_templates, event_settings RESTART IDENTITY CASCADE`); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM email_logs WHERE school_id=$1`, *schoolID); err != nil {
+		return 0, err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM students WHERE school_id=$1`, *schoolID); err != nil {
+		return 0, err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM seating_lanes WHERE school_id=$1`, *schoolID); err != nil {
+		return 0, err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM event_templates WHERE school_id=$1`, *schoolID); err != nil {
 		return 0, err
 	}
 
 	defaults := DefaultEventSettings()
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO event_settings (
-			id, event_title, school_name, graduation_year, recipient_greeting, opening_text,
-			event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
-			whatsapp_template, email_subject, email_template, updated_at
-		)
-		VALUES (
-			TRUE, $1, $2, $3, $4, $5,
-			$6, $7, $8, $9, $10, $11, $12,
-			$13, $14, $15, CURRENT_TIMESTAMP
-		)
-	`, defaults.EventTitle, defaults.SchoolName, defaults.GraduationYear, defaults.RecipientGreeting, defaults.OpeningText,
-		defaults.EventDate, defaults.EventTime, defaults.VenueName, defaults.VenueAddress, defaults.MapsURL, defaults.DressCode, defaults.AdditionalNote,
-		defaults.WhatsappTemplate, defaults.EmailSubject, defaults.EmailTemplate); err != nil {
-		return 0, err
-	}
-
-	if _, err := tx.Exec(ctx, `
 		INSERT INTO event_templates (
-			template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
+			school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
 			event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
 			whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 			theme_primary, theme_secondary, theme_accent,
@@ -202,14 +196,14 @@ func (s *StudentService) ResetAll(ctx context.Context) (int64, error) {
 			event_datetime, layout_variant, show_countdown, show_map, show_qr, show_note, layout_sections, seat_map_columns, seat_map_color_mode, seat_map_layout
 		)
 		VALUES (
-			$1, TRUE, $2, $3, $4, $5, $6,
-			$7, $8, $9, $10, $11, $12, $13,
-			$14, $15, $16, $17, $18, $19, $20,
-			$21, $22, $23,
-			$24, $25, $26,
-			$27, $28, $29, $30, $31, $32, $33, $34, $35, $36
+			$1, $2, TRUE, $3, $4, $5, $6, $7,
+			$8, $9, $10, $11, $12, $13, $14,
+			$15, $16, $17, $18, $19, $20, $21,
+			$22, $23, $24,
+			$25, $26, $27,
+			$28, $29, $30, $31, $32, $33, $34, $35, $36, $37
 		)
-	`, defaults.TemplateName, defaults.EventTitle, defaults.SchoolName, defaults.GraduationYear, defaults.RecipientGreeting, defaults.OpeningText,
+	`, *schoolID, defaults.TemplateName, defaults.EventTitle, defaults.SchoolName, defaults.GraduationYear, defaults.RecipientGreeting, defaults.OpeningText,
 		defaults.EventDate, defaults.EventTime, defaults.VenueName, defaults.VenueAddress, defaults.MapsURL, defaults.DressCode, defaults.AdditionalNote,
 		defaults.WhatsappTemplate, defaults.EmailSubject, defaults.EmailTemplate, defaults.AudioURL, defaults.AudioKey, defaults.AudioTitle, defaults.AudioAutoplay,
 		defaults.ThemePrimary, defaults.ThemeSecondary, defaults.ThemeAccent,
@@ -221,7 +215,7 @@ func (s *StudentService) ResetAll(ctx context.Context) (int64, error) {
 	if err := tx.Commit(ctx); err != nil {
 		return 0, err
 	}
-	return deletedStudents + deletedLanes + deletedTemplates + deletedSettings, nil
+	return deletedStudents + deletedLanes + deletedTemplates, nil
 }
 
 func (s *StudentService) UpdateAttendanceStatus(ctx context.Context, id uuid.UUID, status string) (*models.Student, error) {

@@ -16,6 +16,7 @@ var seatNumberPattern = regexp.MustCompile(`\d+`)
 
 type Student struct {
 	ID                  uuid.UUID  `json:"id"`
+	SchoolID            *uuid.UUID `json:"school_id,omitempty"`
 	Name                string     `json:"name"`
 	ClassName           string     `json:"class_name"`
 	Major               string     `json:"major"`

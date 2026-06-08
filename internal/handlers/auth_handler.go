@@ -24,7 +24,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if err := c.BodyParser(&body); err != nil {
 		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
 	}
-	token, admin, err := h.service.Login(c.Context(), body.Email, body.Password)
+	token, admin, err := h.service.Login(c.UserContext(), body.Email, body.Password)
 	if err != nil {
 		return utils.Error(c, fiber.StatusUnauthorized, err.Error(), nil)
 	}
@@ -36,7 +36,7 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	if !ok {
 		return utils.Error(c, fiber.StatusUnauthorized, "Token tidak valid", nil)
 	}
-	admin, err := h.service.Me(c.Context(), adminID)
+	admin, err := h.service.Me(c.UserContext(), adminID)
 	if err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal mengambil data admin", err.Error())
 	}
