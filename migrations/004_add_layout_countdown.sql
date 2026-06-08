@@ -1,0 +1,8 @@
+-- Countdown target + dynamic layout controls for invitation templates
+ALTER TABLE event_templates
+    ADD COLUMN IF NOT EXISTS event_datetime VARCHAR(40) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS layout_variant VARCHAR(30) NOT NULL DEFAULT 'classic',
+    ADD COLUMN IF NOT EXISTS show_countdown BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS show_map BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS show_qr BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS show_note BOOLEAN NOT NULL DEFAULT TRUE;

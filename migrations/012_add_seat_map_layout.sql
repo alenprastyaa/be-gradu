@@ -1,0 +1,2 @@
+ALTER TABLE event_templates
+ADD COLUMN IF NOT EXISTS seat_map_layout TEXT NOT NULL DEFAULT '';

@@ -1,0 +1,3 @@
+ALTER TABLE event_templates
+ADD COLUMN IF NOT EXISTS school_logo_url TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS school_logo_key TEXT NOT NULL DEFAULT '';
