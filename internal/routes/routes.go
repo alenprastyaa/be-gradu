@@ -19,7 +19,7 @@ func Register(app *fiber.App, db *pgxpool.Pool, cfg config.Config) *services.Aut
 	emailLogRepo := repositories.NewEmailLogRepository(db)
 	eventSettingsRepo := repositories.NewEventSettingsRepository(db)
 
-	seatService := services.NewSeatService(studentRepo)
+	seatService := services.NewSeatService(studentRepo, eventSettingsRepo)
 	studentService := services.NewStudentService(studentRepo, seatService, db, cfg.PublicInvitationURL)
 	eventSettingsService := services.NewEventSettingsService(eventSettingsRepo)
 	authService := services.NewAuthService(adminRepo, schoolRepo, cfg)
