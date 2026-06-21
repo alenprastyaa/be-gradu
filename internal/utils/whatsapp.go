@@ -8,18 +8,32 @@ import (
 	"strings"
 )
 
-var digitsOnly = regexp.MustCompile(`^\d{10,15}$`)
+var (
+	digitsOnly       = regexp.MustCompile(`^\d+$`)
+	nonDigitPattern  = regexp.MustCompile(`\D`)
+	trailingZeroesRE = regexp.MustCompile(`\.0+$`)
+)
 
 func NormalizeWhatsapp(number string) (string, error) {
-	cleaned := strings.NewReplacer(" ", "", "+", "", "-", "", "(", "", ")", "", "\t", "", "\n", "", "\r", "").Replace(strings.TrimSpace(number))
-	cleaned = normalizeNumericString(cleaned)
-	if strings.HasPrefix(cleaned, "0") {
-		cleaned = "62" + strings.TrimPrefix(cleaned, "0")
+	cleaned := normalizeNumericString(number)
+	cleaned = nonDigitPattern.ReplaceAllString(cleaned, "")
+	cleaned = strings.TrimLeft(cleaned, "0")
+	if cleaned == "" {
+		return "", errors.New("nomor WhatsApp tidak valid")
 	}
-	if strings.HasPrefix(cleaned, "8") {
+	if strings.HasPrefix(cleaned, "62") {
+		cleaned = "62" + strings.TrimPrefix(cleaned, "62")
+	} else if strings.HasPrefix(cleaned, "8") {
 		cleaned = "62" + cleaned
+	} else {
+		return "", errors.New("nomor WhatsApp tidak valid")
 	}
+	cleaned = normalizeNumericString(cleaned)
 	if !strings.HasPrefix(cleaned, "62") || !digitsOnly.MatchString(cleaned) {
+		return "", errors.New("nomor WhatsApp tidak valid")
+	}
+	// Lebih longgar dari aturan lama agar nomor valid dari Excel/input manual tidak mudah ditolak.
+	if len(cleaned) < 10 || len(cleaned) > 16 {
 		return "", errors.New("nomor WhatsApp tidak valid")
 	}
 	return cleaned, nil
@@ -35,8 +49,8 @@ func normalizeNumericString(value string) string {
 			return parsed.Text('f', 0)
 		}
 	}
-	if strings.HasSuffix(value, ".0") {
-		return strings.TrimSuffix(value, ".0")
+	if trailingZeroesRE.MatchString(value) {
+		return trailingZeroesRE.ReplaceAllString(value, "")
 	}
 	return value
 }
