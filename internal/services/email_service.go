@@ -563,7 +563,12 @@ func emailHTML(body string, settings *models.EventSettings, student *models.Stud
                     ` + emailInfoCard("Tempat", settings.VenueName, text, muted) + `
                   </td>
                   <td width="50%" valign="top" style="padding:0 0 12px 6px;">
-                    ` + emailInfoCard("Dress Code", settings.DressCode, text, muted) + `
+                    ` + emailInfoCard("Dress Code Siswa", settings.DressCodeStudent, text, muted) + `
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" valign="top" style="padding:0 0 12px 0;">
+                    ` + emailInfoCard("Dress Code Orang Tua", settings.DressCodeParent, text, muted) + `
                   </td>
                 </tr>
               </table>

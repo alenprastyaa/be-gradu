@@ -141,7 +141,8 @@ func normalizeEventSettings(input models.EventSettings) models.EventSettings {
 	input.VenueName = strings.TrimSpace(input.VenueName)
 	input.VenueAddress = strings.TrimSpace(input.VenueAddress)
 	input.MapsURL = strings.TrimSpace(input.MapsURL)
-	input.DressCode = strings.TrimSpace(input.DressCode)
+	input.DressCodeStudent = strings.TrimSpace(input.DressCodeStudent)
+	input.DressCodeParent = strings.TrimSpace(input.DressCodeParent)
 	input.AdditionalNote = strings.TrimSpace(input.AdditionalNote)
 	input.ScheduleTitle = strings.TrimSpace(input.ScheduleTitle)
 	input.ScheduleHeaders = normalizeJSONString(input.ScheduleHeaders)
@@ -284,7 +285,8 @@ func DefaultEventSettings() models.EventSettings {
 		VenueName:         "Aula Utama Sekolah",
 		VenueAddress:      "Jl. Pendidikan No. 1",
 		MapsURL:           "",
-		DressCode:         "Formal rapi",
+		DressCodeStudent:  "Seragam sekolah / formal rapi",
+		DressCodeParent:   "Batik / formal rapi",
 		AdditionalNote:    "Mohon hadir 30 menit sebelum acara dimulai dan tunjukkan QR Code kepada petugas registrasi.",
 		ScheduleTitle:     "Susunan Acara",
 		ScheduleHeaders:   `["Waktu","Kegiatan"]`,
@@ -323,7 +325,8 @@ Hari/Tanggal: {{event_date}}
 Waktu: {{event_time}}
 Tempat: {{venue_name}}
 Alamat: {{venue_address}}
-Dress Code: {{dress_code}}
+Dress Code Siswa: {{dress_code_student}}
+Dress Code Orang Tua: {{dress_code_parent}}
 
 Data Undangan:
 Nama: {{student_name}}
@@ -385,7 +388,12 @@ func RenderInvitationTemplate(template string, settings *models.EventSettings, s
 		"{{venue_name}}", settings.VenueName,
 		"{{venue_address}}", settings.VenueAddress,
 		"{{maps_url}}", settings.MapsURL,
-		"{{dress_code}}", settings.DressCode,
+		"{{dress_code}}", strings.TrimSpace(strings.Join([]string{
+			"Dress Code Siswa: " + settings.DressCodeStudent,
+			"Dress Code Orang Tua: " + settings.DressCodeParent,
+		}, "\n")),
+		"{{dress_code_student}}", settings.DressCodeStudent,
+		"{{dress_code_parent}}", settings.DressCodeParent,
 		"{{additional_note}}", settings.AdditionalNote,
 		"{{student_name}}", student.Name,
 		"{{class_name}}", student.ClassName,

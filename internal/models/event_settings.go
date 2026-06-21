@@ -21,7 +21,8 @@ type EventSettings struct {
 	VenueName         string     `json:"venue_name"`
 	VenueAddress      string     `json:"venue_address"`
 	MapsURL           string     `json:"maps_url"`
-	DressCode         string     `json:"dress_code"`
+	DressCodeStudent  string     `json:"dress_code_student"`
+	DressCodeParent   string     `json:"dress_code_parent"`
 	AdditionalNote    string     `json:"additional_note"`
 	ScheduleTitle     string     `json:"schedule_title"`
 	ScheduleHeaders   string     `json:"schedule_headers"`

@@ -189,7 +189,7 @@ func (s *StudentService) ResetAll(ctx context.Context) (int64, error) {
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO event_templates (
 			school_id, template_name, is_active, event_title, school_name, graduation_year, recipient_greeting, opening_text,
-			event_date, event_time, venue_name, venue_address, maps_url, dress_code, additional_note,
+			event_date, event_time, venue_name, venue_address, maps_url, dress_code_student, dress_code_parent, additional_note,
 			whatsapp_template, email_subject, email_template, audio_url, audio_key, audio_title, audio_autoplay,
 			theme_primary, theme_secondary, theme_accent,
 			theme_background, theme_surface, theme_text,
@@ -197,14 +197,14 @@ func (s *StudentService) ResetAll(ctx context.Context) (int64, error) {
 		)
 		VALUES (
 			$1, $2, TRUE, $3, $4, $5, $6, $7,
-			$8, $9, $10, $11, $12, $13, $14,
-			$15, $16, $17, $18, $19, $20, $21,
-			$22, $23, $24,
-			$25, $26, $27,
-			$28, $29, $30, $31, $32, $33, $34, $35, $36, $37
+			$8, $9, $10, $11, $12, $13, $14, $15,
+			$16, $17, $18, $19, $20, $21, $22,
+			$23, $24, $25,
+			$26, $27, $28,
+			$29, $30, $31, $32, $33, $34, $35, $36, $37, $38
 		)
 	`, *schoolID, defaults.TemplateName, defaults.EventTitle, defaults.SchoolName, defaults.GraduationYear, defaults.RecipientGreeting, defaults.OpeningText,
-		defaults.EventDate, defaults.EventTime, defaults.VenueName, defaults.VenueAddress, defaults.MapsURL, defaults.DressCode, defaults.AdditionalNote,
+		defaults.EventDate, defaults.EventTime, defaults.VenueName, defaults.VenueAddress, defaults.MapsURL, defaults.DressCodeStudent, defaults.DressCodeParent, defaults.AdditionalNote,
 		defaults.WhatsappTemplate, defaults.EmailSubject, defaults.EmailTemplate, defaults.AudioURL, defaults.AudioKey, defaults.AudioTitle, defaults.AudioAutoplay,
 		defaults.ThemePrimary, defaults.ThemeSecondary, defaults.ThemeAccent,
 		defaults.ThemeBackground, defaults.ThemeSurface, defaults.ThemeText,
