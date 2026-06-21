@@ -73,7 +73,7 @@ func (s *SeatService) orderStudentsByActiveSeatLayout(ctx context.Context, stude
 		return students
 	}
 
-	pairOrder := parseSeatLayoutPairOrder(settings.SeatMapLayout)
+	pairOrder := parseSeatLayoutPairOrder(settings.SeatMapLayout, settings.SeatMapColumns)
 	if len(pairOrder) == 0 {
 		return students
 	}
@@ -108,29 +108,51 @@ func (s *SeatService) orderStudentsByActiveSeatLayout(ctx context.Context, stude
 	return ordered
 }
 
-func parseSeatLayoutPairOrder(layout string) []string {
+func parseSeatLayoutPairOrder(layout string, columns int) []string {
 	var rows [][]string
 	if err := json.Unmarshal([]byte(layout), &rows); err != nil {
 		return nil
 	}
+	if columns <= 0 {
+		columns = 20
+	}
+	leftColumns := columns / 2
 
 	order := make([]string, 0)
 	seen := make(map[string]struct{})
+	appendPair := func(value string) {
+		key := strings.TrimSpace(value)
+		if key == "" {
+			return
+		}
+		pairID := strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(key, "-student"), "-companion"))
+		if pairID == "" {
+			return
+		}
+		if _, exists := seen[pairID]; exists {
+			return
+		}
+		seen[pairID] = struct{}{}
+		order = append(order, pairID)
+	}
+
+	// Urutan visual dibaca per baris pada sisi kiri, lalu sisi kanan setelah lorong.
 	for _, row := range rows {
-		for _, value := range row {
-			key := strings.TrimSpace(value)
-			if key == "" {
-				continue
-			}
-			pairID := strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(key, "-student"), "-companion"))
-			if pairID == "" {
-				continue
-			}
-			if _, exists := seen[pairID]; exists {
-				continue
-			}
-			seen[pairID] = struct{}{}
-			order = append(order, pairID)
+		limit := leftColumns
+		if len(row) < limit {
+			limit = len(row)
+		}
+		for column := 0; column < limit; column++ {
+			appendPair(row[column])
+		}
+	}
+	for _, row := range rows {
+		limit := columns
+		if len(row) < limit {
+			limit = len(row)
+		}
+		for column := leftColumns; column < limit; column++ {
+			appendPair(row[column])
 		}
 	}
 	return order
