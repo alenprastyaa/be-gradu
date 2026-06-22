@@ -12,6 +12,7 @@ type EventSettings struct {
 	TemplateName      string     `json:"template_name"`
 	IsActive          bool       `json:"is_active"`
 	EventTitle        string     `json:"event_title"`
+	EventTitleSecond  string     `json:"event_title_second"`
 	SchoolName        string     `json:"school_name"`
 	GraduationYear    string     `json:"graduation_year"`
 	RecipientGreeting string     `json:"recipient_greeting"`

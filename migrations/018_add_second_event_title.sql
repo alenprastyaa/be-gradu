@@ -1,0 +1,5 @@
+ALTER TABLE IF EXISTS event_templates
+ADD COLUMN IF NOT EXISTS event_title_second TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE IF EXISTS event_settings
+ADD COLUMN IF NOT EXISTS event_title_second TEXT NOT NULL DEFAULT '';

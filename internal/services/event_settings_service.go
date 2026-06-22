@@ -276,6 +276,7 @@ func DefaultEventSettings() models.EventSettings {
 	return models.EventSettings{
 		TemplateName:      "Formal Navy Gold",
 		EventTitle:        "Graduation Ceremony 2026",
+		EventTitleSecond:  "",
 		SchoolName:        "Nama Sekolah",
 		GraduationYear:    "2026",
 		RecipientGreeting: "Yth. Siswa/i dan Orang Tua/Wali",
