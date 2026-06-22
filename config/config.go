@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -31,12 +32,18 @@ type Config struct {
 }
 
 func Load() Config {
+	frontendURL := env("FRONTEND_URL", "http://localhost:5173")
+	publicInvitationURL := strings.TrimSpace(os.Getenv("PUBLIC_INVITATION_URL"))
+	if publicInvitationURL == "" {
+		publicInvitationURL = strings.TrimRight(frontendURL, "/") + "/invite"
+	}
+
 	return Config{
 		AppPort:                   env("APP_PORT", "8080"),
 		DatabaseURL:               env("DATABASE_URL", "postgres://username:password@localhost:5432/graduation?sslmode=disable"),
 		JWTSecret:                 env("JWT_SECRET", "change_this_secret"),
-		FrontendURL:               env("FRONTEND_URL", "http://localhost:5173"),
-		PublicInvitationURL:       env("PUBLIC_INVITATION_URL", "http://localhost:5173/invite"),
+		FrontendURL:               frontendURL,
+		PublicInvitationURL:       publicInvitationURL,
 		BrevoAPIKey:               env("BREVO_API_KEY", ""),
 		BrevoSenderEmail:          env("BREVO_SENDER_EMAIL", ""),
 		BrevoSenderName:           env("BREVO_SENDER_NAME", "Graduation Invitation CMS"),
