@@ -11,10 +11,11 @@ import (
 
 type AttendanceService struct {
 	students *repositories.StudentRepository
+	teachers *repositories.TeacherInviteRepository
 }
 
-func NewAttendanceService(students *repositories.StudentRepository) *AttendanceService {
-	return &AttendanceService{students: students}
+func NewAttendanceService(students *repositories.StudentRepository, teachers *repositories.TeacherInviteRepository) *AttendanceService {
+	return &AttendanceService{students: students, teachers: teachers}
 }
 
 func (s *AttendanceService) Scan(ctx context.Context, payload string) (map[string]interface{}, error) {
@@ -36,6 +37,32 @@ func (s *AttendanceService) Scan(ctx context.Context, payload string) (map[strin
 		}
 	}
 	if student == nil {
+		teacher, teacherErr := s.teachers.FindByQRPayload(ctx, payload)
+		if teacherErr != nil {
+			return nil, teacherErr
+		}
+		if teacher == nil {
+			code := strings.TrimPrefix(payload, "GRAD-TEACHER:")
+			if code != payload {
+				teacher, teacherErr = s.teachers.FindByInvitationCode(ctx, code)
+				if teacherErr != nil {
+					return nil, teacherErr
+				}
+			}
+		}
+		if teacher != nil {
+			generic := mapTeacherInviteAsStudentLike(teacher)
+			if teacher.AttendanceStatus == models.AttendanceHadir {
+				return map[string]interface{}{"status": "already_attended", "student": generic}, nil
+			}
+			updated, err := s.teachers.MarkAttendance(ctx, teacher.ID)
+			if err != nil || updated == nil {
+				return nil, err
+			}
+			return map[string]interface{}{"status": "success", "student": mapTeacherInviteAsStudentLike(updated)}, nil
+		}
+	}
+	if student == nil {
 		return nil, errors.New("QR Code tidak valid")
 	}
 	if student.AttendanceStatus == models.AttendanceHadir {
@@ -50,4 +77,20 @@ func (s *AttendanceService) Scan(ctx context.Context, payload string) (map[strin
 
 func (s *AttendanceService) Summary(ctx context.Context) (map[string]interface{}, error) {
 	return s.students.Summary(ctx)
+}
+
+func mapTeacherInviteAsStudentLike(item *models.TeacherInvite) map[string]interface{} {
+	return map[string]interface{}{
+		"id":                    item.ID,
+		"name":                  item.Name,
+		"class_name":            "Guru",
+		"major":                 item.Position,
+		"student_seat_number":   "",
+		"companion_seat_number": "",
+		"attendance_status":     item.AttendanceStatus,
+		"attendance_time":       item.AttendanceTime,
+		"qr_payload":            item.QRPayload,
+		"invitation_code":       item.InvitationCode,
+		"invite_type":           "teacher",
+	}
 }

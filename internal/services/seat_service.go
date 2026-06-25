@@ -33,7 +33,13 @@ func (s *SeatService) GenerateNextSeatNumber(ctx context.Context, className, maj
 	return "-", formatSeatRange(count*seatsPerStudent + 1), nil
 }
 
-func (s *SeatService) RegenerateAllSeatNumbers(ctx context.Context) error {
+func (s *SeatService) RegenerateAllSeatNumbers(ctx context.Context, columns int, colorMode, layout string) error {
+	if s.eventSettingsRepo != nil && strings.TrimSpace(layout) != "" {
+		if _, err := s.eventSettingsRepo.UpdateActiveSeatMap(ctx, normalizeSeatMapColumns(columns), normalizeSeatMapColorMode(colorMode), strings.TrimSpace(layout)); err != nil {
+			return err
+		}
+	}
+
 	students, err := s.studentRepo.ListAllOrdered(ctx)
 	if err != nil {
 		return err
@@ -84,9 +90,9 @@ func (s *SeatService) orderStudentsByActiveSeatLayout(ctx context.Context, stude
 		return students, nil
 	}
 
-	sortStudentsByMajorAndName(students, pairOrder)
+	sortStudentsByLayoutOrder(students, pairOrder)
 
-	nextLayout, err := buildAlphabeticalSeatLayout(settings.SeatMapLayout, settings.SeatMapColumns, students)
+	nextLayout, err := rebuildSeatLayout(settings.SeatMapLayout, settings.SeatMapColumns, students)
 	if err != nil {
 		return nil, err
 	}
@@ -103,50 +109,35 @@ func normalizedSortValue(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
-func sortStudentsByMajorAndName(students []models.Student, pairOrder []string) {
-	studentByID := make(map[string]models.Student, len(students))
-	for _, student := range students {
-		studentByID[student.ID.String()] = student
-	}
-
-	majorRank := make(map[string]int)
-	for _, pairID := range pairOrder {
-		student, ok := studentByID[pairID]
-		if !ok {
-			continue
+func sortStudentsByLayoutOrder(students []models.Student, pairOrder []string) {
+	pairRank := make(map[string]int, len(pairOrder))
+	for index, pairID := range pairOrder {
+		if _, exists := pairRank[pairID]; !exists {
+			pairRank[pairID] = index
 		}
-		major := normalizedSortValue(student.Major)
-		if _, exists := majorRank[major]; !exists {
-			majorRank[major] = len(majorRank)
-		}
-	}
-
-	missingMajors := make([]string, 0)
-	for _, student := range students {
-		major := normalizedSortValue(student.Major)
-		if _, exists := majorRank[major]; !exists {
-			majorRank[major] = -1
-			missingMajors = append(missingMajors, major)
-		}
-	}
-	sort.Strings(missingMajors)
-	firstMissingRank := len(majorRank) - len(missingMajors)
-	for index, major := range missingMajors {
-		majorRank[major] = firstMissingRank + index
 	}
 
 	sort.SliceStable(students, func(i, j int) bool {
 		a := students[i]
 		b := students[j]
-		aMajor := normalizedSortValue(a.Major)
-		bMajor := normalizedSortValue(b.Major)
-		if majorRank[aMajor] != majorRank[bMajor] {
-			return majorRank[aMajor] < majorRank[bMajor]
+		aRank, aHasRank := pairRank[a.ID.String()]
+		bRank, bHasRank := pairRank[b.ID.String()]
+		if aHasRank && bHasRank && aRank != bRank {
+			return aRank < bRank
 		}
+		if aHasRank != bHasRank {
+			return aHasRank
+		}
+
 		aClass := normalizedSortValue(a.ClassName)
 		bClass := normalizedSortValue(b.ClassName)
 		if aClass != bClass {
 			return aClass < bClass
+		}
+		aMajor := normalizedSortValue(a.Major)
+		bMajor := normalizedSortValue(b.Major)
+		if aMajor != bMajor {
+			return aMajor < bMajor
 		}
 		aName := normalizedSortValue(a.Name)
 		bName := normalizedSortValue(b.Name)
@@ -157,7 +148,7 @@ func sortStudentsByMajorAndName(students []models.Student, pairOrder []string) {
 	})
 }
 
-func buildAlphabeticalSeatLayout(layout string, columns int, students []models.Student) (string, error) {
+func rebuildSeatLayout(layout string, columns int, students []models.Student) (string, error) {
 	var currentRows [][]string
 	if err := json.Unmarshal([]byte(layout), &currentRows); err != nil {
 		return "", err
@@ -186,33 +177,46 @@ func buildAlphabeticalSeatLayout(layout string, columns int, students []models.S
 		id := student.ID.String()
 		keys = append(keys, id+"-student", id+"-companion")
 	}
-	baseRows := (len(keys) + columns - 1) / columns
-	rows := make([][]string, baseRows+trailingEmptyRows)
+	leftColumns := columns / 2
+	rightColumns := columns - leftColumns
+
+	leftRows := sectionRowCount(currentRows, 0, leftColumns)
+	rightRows := sectionRowCount(currentRows, leftColumns, columns)
+	if leftRows == 0 && rightRows == 0 {
+		baseRows := (len(keys) + columns - 1) / columns
+		leftRows = baseRows
+		rightRows = baseRows
+	}
+
+	totalRows := leftRows
+	if rightRows > totalRows {
+		totalRows = rightRows
+	}
+	rows := make([][]string, totalRows+trailingEmptyRows)
 	for index := range rows {
 		rows[index] = make([]string, columns)
 	}
 
-	leftColumns := columns / 2
-	rightColumns := columns - leftColumns
-	leftCapacity := baseRows * leftColumns
+	leftCapacity := leftRows * leftColumns
 	leftKeysEnd := leftCapacity
 	if len(keys) < leftKeysEnd {
 		leftKeysEnd = len(keys)
 	}
 	leftKeys := keys[:leftKeysEnd]
 	rightKeys := keys[leftKeysEnd:]
-	for row := 0; row < baseRows; row++ {
-		for column := 0; column < leftColumns; column++ {
-			index := row*leftColumns + column
-			if index < len(leftKeys) {
-				rows[row][column] = leftKeys[index]
-			}
+
+	for index, key := range leftKeys {
+		row := index / leftColumns
+		column := index % leftColumns
+		if row < totalRows {
+			rows[row][column] = key
 		}
-		for column := 0; column < rightColumns; column++ {
-			index := row*rightColumns + column
-			if index < len(rightKeys) {
-				rows[row][leftColumns+column] = rightKeys[index]
-			}
+	}
+	for index, key := range rightKeys {
+		row := index / rightColumns
+		column := leftColumns + (index % rightColumns)
+		if row < totalRows {
+			rows[row][column] = key
 		}
 	}
 
@@ -221,6 +225,24 @@ func buildAlphabeticalSeatLayout(layout string, columns int, students []models.S
 		return "", err
 	}
 	return string(encoded), nil
+}
+
+func sectionRowCount(rows [][]string, start, end int) int {
+	lastRow := 0
+	for rowIndex, row := range rows {
+		limit := end
+		if len(row) < limit {
+			limit = len(row)
+		}
+		for column := start; column < limit; column++ {
+			if strings.TrimSpace(row[column]) == "" {
+				continue
+			}
+			lastRow = rowIndex + 1
+			break
+		}
+	}
+	return lastRow
 }
 
 func parseSeatLayoutPairOrder(layout string, columns int) []string {
@@ -251,7 +273,6 @@ func parseSeatLayoutPairOrder(layout string, columns int) []string {
 		order = append(order, pairID)
 	}
 
-	// Urutan visual dibaca per baris pada sisi kiri, lalu sisi kanan setelah lorong.
 	for _, row := range rows {
 		limit := leftColumns
 		if len(row) < limit {

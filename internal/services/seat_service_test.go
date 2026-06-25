@@ -22,18 +22,18 @@ func TestParseSeatLayoutPairOrderReadsLeftSectionBeforeRight(t *testing.T) {
 	}
 }
 
-func TestSortStudentsByMajorAndNameUsesAlphabeticalNames(t *testing.T) {
+func TestSortStudentsByLayoutOrderUsesPairOrder(t *testing.T) {
 	students := []models.Student{
 		{ID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), Name: "TRI EKA NURCAHYANI", ClassName: "12 AKL 1", Major: "AKL"},
 		{ID: uuid.MustParse("00000000-0000-0000-0000-000000000002"), Name: "LIVIA AZKA SAHIRA", ClassName: "12 AKL 1", Major: "AKL"},
 		{ID: uuid.MustParse("00000000-0000-0000-0000-000000000003"), Name: "ANINDA PUTRI", ClassName: "12 AKL 1", Major: "AKL"},
 	}
-	pairOrder := []string{students[0].ID.String(), students[1].ID.String(), students[2].ID.String()}
+	pairOrder := []string{students[2].ID.String(), students[0].ID.String(), students[1].ID.String()}
 
-	sortStudentsByMajorAndName(students, pairOrder)
+	sortStudentsByLayoutOrder(students, pairOrder)
 
 	got := []string{students[0].Name, students[1].Name, students[2].Name}
-	want := []string{"ANINDA PUTRI", "LIVIA AZKA SAHIRA", "TRI EKA NURCAHYANI"}
+	want := []string{"ANINDA PUTRI", "TRI EKA NURCAHYANI", "LIVIA AZKA SAHIRA"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected student order: got %v, want %v", got, want)
 	}

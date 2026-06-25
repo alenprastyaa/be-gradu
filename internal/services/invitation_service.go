@@ -9,34 +9,66 @@ import (
 
 type InvitationService struct {
 	students *StudentService
+	teachers *TeacherInviteService
 	events   *EventSettingsService
 }
 
-func NewInvitationService(students *StudentService, events *EventSettingsService) *InvitationService {
-	return &InvitationService{students: students, events: events}
+func NewInvitationService(students *StudentService, teachers *TeacherInviteService, events *EventSettingsService) *InvitationService {
+	return &InvitationService{students: students, teachers: teachers, events: events}
 }
 
 func (s *InvitationService) GetByCode(ctx context.Context, code string) (map[string]interface{}, error) {
 	student, err := s.students.GetByInvitationCode(ctx, code)
-	if err != nil || student == nil {
+	if err != nil {
 		return nil, err
 	}
-	if student.SchoolID != nil {
-		ctx = authcontext.WithSchoolID(ctx, *student.SchoolID)
+	if student != nil {
+		if student.SchoolID != nil {
+			ctx = authcontext.WithSchoolID(ctx, *student.SchoolID)
+		}
+		event, err := s.events.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
+		seatMap, err := s.students.SeatMap(ctx, models.StudentFilter{})
+		if err != nil {
+			return nil, err
+		}
+		publicSeatMap := sanitizePublicSeatMap(seatMap)
+		return map[string]interface{}{
+			"student":  student,
+			"event":    event,
+			"seat_map": publicSeatMap,
+		}, nil
+	}
+
+	teacher, err := s.teachers.GetByInvitationCode(ctx, code)
+	if err != nil || teacher == nil {
+		return nil, err
+	}
+	if teacher.SchoolID != nil {
+		ctx = authcontext.WithSchoolID(ctx, *teacher.SchoolID)
 	}
 	event, err := s.events.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	seatMap, err := s.students.SeatMap(ctx, models.StudentFilter{})
-	if err != nil {
-		return nil, err
-	}
-	publicSeatMap := sanitizePublicSeatMap(seatMap)
 	return map[string]interface{}{
-		"student":  student,
+		"student": map[string]interface{}{
+			"id":                    teacher.ID,
+			"name":                  teacher.Name,
+			"class_name":            "Guru",
+			"major":                 teacher.Position,
+			"student_seat_number":   "",
+			"companion_seat_number": "",
+			"attendance_status":     teacher.AttendanceStatus,
+			"attendance_time":       teacher.AttendanceTime,
+			"qr_payload":            teacher.QRPayload,
+			"invitation_code":       teacher.InvitationCode,
+			"invite_type":           "teacher",
+		},
 		"event":    event,
-		"seat_map": publicSeatMap,
+		"seat_map": map[string]interface{}{"items": []map[string]interface{}{}, "total": 0, "seat_total": 0},
 	}, nil
 }
 

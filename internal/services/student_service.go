@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -71,12 +72,43 @@ func (s *StudentService) SeatMap(ctx context.Context, filter models.StudentFilte
 	if err != nil {
 		return nil, err
 	}
+	sort.SliceStable(students, func(i, j int) bool {
+		aSeat := seatOrderValue(students[i])
+		bSeat := seatOrderValue(students[j])
+		if aSeat != bSeat {
+			return aSeat < bSeat
+		}
+		aName := strings.ToLower(strings.TrimSpace(students[i].Name))
+		bName := strings.ToLower(strings.TrimSpace(students[j].Name))
+		if aName != bName {
+			return aName < bName
+		}
+		return students[i].ID.String() < students[j].ID.String()
+	})
 	return map[string]interface{}{
 		"items":       students,
 		"total":       len(students),
 		"seat_total":  len(students) * 2,
 		"description": "Setiap siswa memiliki 2 nomor bangku: siswa dan pendamping.",
 	}, nil
+}
+
+func seatOrderValue(student models.Student) int {
+	raw := strings.TrimSpace(student.StudentSeatNumber)
+	if raw == "" {
+		raw = strings.TrimSpace(student.SeatNumber)
+	}
+	for _, part := range strings.FieldsFunc(raw, func(r rune) bool {
+		return r < '0' || r > '9'
+	}) {
+		if part == "" {
+			continue
+		}
+		if value, err := strconv.Atoi(part); err == nil {
+			return value
+		}
+	}
+	return 1<<30 - 1
 }
 
 func (s *StudentService) Get(ctx context.Context, id uuid.UUID) (*models.Student, error) {

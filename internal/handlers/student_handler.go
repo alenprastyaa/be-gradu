@@ -180,7 +180,18 @@ func (h *StudentHandler) ImportTemplate(c *fiber.Ctx) error {
 }
 
 func (h *StudentHandler) RegenerateSeats(c *fiber.Ctx) error {
-	if err := h.seats.RegenerateAllSeatNumbers(c.UserContext()); err != nil {
+	var body struct {
+		SeatMapColumns   int    `json:"seat_map_columns"`
+		SeatMapColorMode string `json:"seat_map_color_mode"`
+		SeatMapLayout    string `json:"seat_map_layout"`
+	}
+	if len(c.Body()) > 0 {
+		if err := c.BodyParser(&body); err != nil {
+			return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
+		}
+	}
+
+	if err := h.seats.RegenerateAllSeatNumbers(c.UserContext(), body.SeatMapColumns, body.SeatMapColorMode, body.SeatMapLayout); err != nil {
 		return utils.Error(c, fiber.StatusInternalServerError, "Gagal regenerate nomor bangku", err.Error())
 	}
 	return utils.Success(c, "Nomor bangku berhasil disusun ulang", nil)
