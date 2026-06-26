@@ -62,6 +62,27 @@ func (h *TeacherInviteHandler) Update(c *fiber.Ctx) error {
 	return utils.Success(c, "Undangan guru berhasil diperbarui", data)
 }
 
+func (h *TeacherInviteHandler) UpdateAttendanceStatus(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, "ID tidak valid", nil)
+	}
+	var body struct {
+		AttendanceStatus string `json:"attendance_status"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, "Request tidak valid", err.Error())
+	}
+	data, err := h.service.UpdateAttendanceStatus(c.UserContext(), id, body.AttendanceStatus)
+	if err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
+	}
+	if data == nil {
+		return utils.Error(c, fiber.StatusNotFound, "Undangan guru tidak ditemukan", nil)
+	}
+	return utils.Success(c, "Status absensi guru berhasil diperbarui", data)
+}
+
 func (h *TeacherInviteHandler) Delete(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {

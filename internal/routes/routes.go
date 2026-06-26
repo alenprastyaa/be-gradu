@@ -87,6 +87,7 @@ func Register(app *fiber.App, db *pgxpool.Pool, cfg config.Config) *services.Aut
 	schoolAdmin.Post("/teacher-invites/import", teacherInviteHandler.Import)
 	schoolAdmin.Get("/teacher-invites/import-template", teacherInviteHandler.ImportTemplate)
 	schoolAdmin.Put("/teacher-invites/:id", teacherInviteHandler.Update)
+	schoolAdmin.Put("/teacher-invites/:id/attendance", teacherInviteHandler.UpdateAttendanceStatus)
 	schoolAdmin.Delete("/teacher-invites/:id", teacherInviteHandler.Delete)
 	schoolAdmin.Get("/students/whatsapp-links", whatsappHandler.All)
 	schoolAdmin.Post("/students/whatsapp-links", whatsappHandler.All)

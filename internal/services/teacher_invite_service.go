@@ -126,6 +126,14 @@ func (s *TeacherInviteService) MarkAttendance(ctx context.Context, id uuid.UUID)
 	return s.repo.MarkAttendance(ctx, id)
 }
 
+func (s *TeacherInviteService) UpdateAttendanceStatus(ctx context.Context, id uuid.UUID, status string) (*models.TeacherInvite, error) {
+	status = strings.TrimSpace(status)
+	if status != models.AttendanceHadir && status != models.AttendanceBelumHadir {
+		return nil, errors.New("status kehadiran tidak valid")
+	}
+	return s.repo.UpdateAttendanceStatus(ctx, id, status)
+}
+
 func (s *TeacherInviteService) Import(ctx context.Context, rows []utils.TeacherImportRow) (map[string]interface{}, error) {
 	var created []models.TeacherInvite
 	var rowErrors []string

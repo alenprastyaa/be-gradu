@@ -18,7 +18,7 @@ import (
 type TeacherInviteRepository struct {
 	db *pgxpool.Pool
 
-	schemaMu                sync.RWMutex
+	schemaMu                 sync.RWMutex
 	hasTeacherInviteSchoolID *bool
 }
 
@@ -218,7 +218,23 @@ func (r *TeacherInviteRepository) MarkAttendance(ctx context.Context, id uuid.UU
 	}
 	row := r.db.QueryRow(ctx, `
 		UPDATE teacher_invites
-		SET attendance_status=$1, attendance_time=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
+		SET attendance_status=$1, attendance_time=CURRENT_TIMESTAMP AT TIME ZONE 'UTC', updated_at=CURRENT_TIMESTAMP
+		WHERE id=$2`+tenantClause+`
+		RETURNING `+teacherInviteReturningColumns()+`
+	`, args...)
+	return scanTeacherInvite(row)
+}
+
+func (r *TeacherInviteRepository) UpdateAttendanceStatus(ctx context.Context, id uuid.UUID, status string) (*models.TeacherInvite, error) {
+	tenantClause, args, err := r.teacherInviteTenantClauseWithArgs(ctx, 3, status, id)
+	if err != nil {
+		return nil, err
+	}
+	row := r.db.QueryRow(ctx, `
+		UPDATE teacher_invites
+		SET attendance_status=$1::varchar,
+			attendance_time=CASE WHEN $1::text='hadir' THEN CURRENT_TIMESTAMP AT TIME ZONE 'UTC' ELSE NULL END,
+			updated_at=CURRENT_TIMESTAMP
 		WHERE id=$2`+tenantClause+`
 		RETURNING `+teacherInviteReturningColumns()+`
 	`, args...)

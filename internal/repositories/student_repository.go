@@ -264,7 +264,7 @@ func (r *StudentRepository) UpdateSeat(ctx context.Context, id uuid.UUID, laneCo
 func (r *StudentRepository) MarkAttendance(ctx context.Context, id uuid.UUID) (*models.Student, error) {
 	row := r.db.QueryRow(ctx, `
 		UPDATE students
-		SET attendance_status='hadir', attendance_time=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
+		SET attendance_status='hadir', attendance_time=CURRENT_TIMESTAMP AT TIME ZONE 'UTC', updated_at=CURRENT_TIMESTAMP
 		WHERE id=$1 AND attendance_status='belum_hadir' `+tenantSQL(ctx, 2)+`
 		RETURNING id, school_id, name, class_name, major, lane_code, seat_number, whatsapp_number, email, invitation_code, qr_payload, attendance_status, attendance_time, whatsapp_sent_at, email_sent_at, email_brevo_message_id, created_at, updated_at
 	`, tenantArgs(ctx, id)...)
@@ -275,7 +275,7 @@ func (r *StudentRepository) UpdateAttendanceStatus(ctx context.Context, id uuid.
 	query := `
 		UPDATE students
 		SET attendance_status=$2::varchar,
-			attendance_time=CASE WHEN $2::text='hadir' THEN CURRENT_TIMESTAMP ELSE NULL END,
+			attendance_time=CASE WHEN $2::text='hadir' THEN CURRENT_TIMESTAMP AT TIME ZONE 'UTC' ELSE NULL END,
 			updated_at=CURRENT_TIMESTAMP
 		WHERE id=$1 ` + tenantSQL(ctx, 3) + `
 		RETURNING id, school_id, name, class_name, major, lane_code, seat_number, whatsapp_number, email, invitation_code, qr_payload, attendance_status, attendance_time, whatsapp_sent_at, email_sent_at, email_brevo_message_id, created_at, updated_at
